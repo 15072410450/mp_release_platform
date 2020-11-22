@@ -13,6 +13,14 @@ import { ssrMiddleware } from './middleware/ssr.middleware'
 import { browserMiddleware } from './middleware/browser.middleware'
 import { envMiddleware } from './middleware/env.middleware'
 import { restMiddleware } from './middleware/rest.middleware'
+import * as fs from 'fs'
+import * as utils from './utils/index'
+import * as https from "https"
+
+const httpsOptions = {
+  key: fs.readFileSync(utils.fixedToRelativePath('/lib/https/https_private.key'), 'utf-8'),
+  cert: fs.readFileSync(utils.fixedToRelativePath('/lib/https/https_certificate.pem'), 'utf-8'),
+}
 
 const getIp = () => {
   const networkInterfaces = os.networkInterfaces()
@@ -58,6 +66,10 @@ async function bootstrap(): Promise<void> {
   await app.init()
 
   await app.listen(process.env.HTTPPORT)
+
+  const httpsServer = https.createServer(httpsOptions, server)
+  httpsServer.listen(process.env.HTTPSPORT)
+  httpsServer.keepAliveTimeout = Number.parseInt(process.env.KEEP_ALIVE_TIMEOUT)
 }
 bootstrap().then(() => {
   const ip = getIp()
@@ -66,7 +78,9 @@ bootstrap().then(() => {
 
     小程序发布平台 running at:
     - Local:   http://localhost:${process.env.HTTPPORT}
+               https://localhost:${process.env.HTTPSPORT}
     - Network: http://${ip}:${process.env.HTTPPORT}
+               https://${ip}:${process.env.HTTPSPORT}
 
   `)
   } else {
